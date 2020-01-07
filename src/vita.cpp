@@ -600,6 +600,8 @@ int pkgi_update(pkgi_input* input)
     }
 
     vita2d_start_drawing();
+    vita2d_set_clear_color(PKGI_COLOR_MENU_BACKGROUND);
+    vita2d_clear_screen();
 
     uint64_t time = sceKernelGetProcessTimeWide();
     input->delta = time - g_time;

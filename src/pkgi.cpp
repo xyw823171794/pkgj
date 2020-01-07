@@ -892,7 +892,7 @@ void pkgi_do_tail(Downloader& downloader)
     int right = rightw + PKGI_MAIN_TEXT_PADDING;
 
     std::string bottom_text;
-    if (gameview || pkgi_dialog_is_open()) {
+    if (gameview) {
         bottom_text = fmt::format(
                 "{} select {} close",
                 pkgi_get_ok_str(),
@@ -1159,11 +1159,18 @@ int main()
                     io.NavInputs[ImGuiNavInput_DpadRight] = 1.0f;
                 if (input.pressed & pkgi_ok_button())
                     io.NavInputs[ImGuiNavInput_Activate] = 1.0f;
-                if (input.pressed & pkgi_cancel_button() && gameview)
-                    gameview->close();
+                if (input.pressed & pkgi_cancel_button()) {
+                    if (pkgi_dialog_is_open()) pkgi_dialog_close();
+                    else if (gameview) gameview->close();
+                }
 
                 input.active = 0;
                 input.pressed = 0;
+            }
+            else 
+            {
+                if (input.pressed & PKGI_BUTTON_SELECT)
+                    pkgi_dialog_message("test dialog\n1\n2\n3");
             }
 
             if (need_refresh)

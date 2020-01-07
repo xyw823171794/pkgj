@@ -6,32 +6,44 @@ extern "C"
 }
 #include "pkgi.hpp"
 
-#include <imgui.h>
+#include <vita2d.h>
 
+#define ALIGN_CENTER(a, b) (((a) - (b)) / 2)
 namespace
 {
 typedef enum
 {
     DialogNone,
-    DialogMessage,
+    DialogInfo,
+    DialogOK,
     DialogError,
-    DialogQuestion,
+    DialogYesNo,
 } DialogType;
 
-DialogType dialog_type;
-std::string dialog_title;
-std::string dialog_text;
-std::vector<Response> dialog_responses;
-int dialog_allow_close;
-int dialog_cancelled;
+// Main
+const float SHELL_MARGIN_X         = 20.0f;
+const float SHELL_MARGIN_Y         = 18.0f;
+const float FONT_Y_SPACE           = 23.0f;
 
-int dialog_name = 0;
+DialogType dialog_type;
+std::vector<std::string> dialog_text;
+std::vector<Response> dialog_responses;
+int dialog_width = PKGI_DIALOG_WIDTH;
+}
+
+const char* pkgi_get_ok_str(void)
+{
+    return pkgi_ok_button() == PKGI_BUTTON_X ? PKGI_UTF8_X : PKGI_UTF8_O;
+}
+
+const char* pkgi_get_cancel_str(void)
+{
+    return pkgi_cancel_button() == PKGI_BUTTON_O ? PKGI_UTF8_O : PKGI_UTF8_X;
 }
 
 void pkgi_dialog_init()
 {
     dialog_type = DialogNone;
-    dialog_allow_close = 1;
 }
 
 int pkgi_dialog_is_open()
@@ -39,66 +51,56 @@ int pkgi_dialog_is_open()
     return dialog_type != DialogNone;
 }
 
-int pkgi_dialog_is_cancelled()
-{
-    return dialog_cancelled;
-}
+void pkgi_dialog_spit_text(const char* text) {
 
-void pkgi_dialog_allow_close(int allow)
-{
-    pkgi_dialog_lock();
-    dialog_allow_close = allow;
-    pkgi_dialog_unlock();
+    size_t len = strlen(text);
+    const char *str = text;
+
+    dialog_text.clear();
+    dialog_width = 0;
+
+    for (size_t i = 0; i < len; i++)
+    {
+        if (text[i] == '\n')
+        {
+            std::string line(str, text + i - str);
+            int width = pkgi_text_width(line.c_str());
+            dialog_text.push_back(line);
+            dialog_width = std::max(width, dialog_width);
+            str = text + i + 1;            
+        }
+        else if (text[i] == '\0') 
+        {
+            int width = pkgi_text_width(str);
+            dialog_text.push_back(str);
+            dialog_width = std::max(width, dialog_width);
+        }
+    }
 }
 
 void pkgi_dialog_message(const char* text, int allow_close)
 {
     pkgi_dialog_lock();
-
-    ++dialog_name;
-
-    dialog_text = text;
-    dialog_title = "";
-
-    dialog_allow_close = allow_close;
-    dialog_cancelled = 0;
-    dialog_type = DialogMessage;
-
+    pkgi_dialog_spit_text(text);
+    dialog_type = allow_close ? DialogOK : DialogInfo;
     pkgi_dialog_unlock();
 }
 
 void pkgi_dialog_error(const char* text)
 {
     LOGF("Error dialog: {}", text);
-
     pkgi_dialog_lock();
-
-    ++dialog_name;
-
-    dialog_title = "ERROR";
-    dialog_text = text;
-
-    dialog_allow_close = 1;
-    dialog_cancelled = 0;
+    pkgi_dialog_spit_text(text);
     dialog_type = DialogError;
-
     pkgi_dialog_unlock();
 }
 
-void pkgi_dialog_question(
-        const std::string& text, const std::vector<Response>& responses)
+void pkgi_dialog_question(const std::string& text, const std::vector<Response>& responses)
 {
     pkgi_dialog_lock();
-
-    ++dialog_name;
-
-    dialog_text = text;
-    dialog_title = "";
-
-    dialog_cancelled = 0;
-    dialog_type = DialogQuestion;
+    pkgi_dialog_spit_text(text.c_str());
+    dialog_type = DialogYesNo;
     dialog_responses = responses;
-
     pkgi_dialog_unlock();
 }
 
@@ -115,68 +117,43 @@ void pkgi_do_dialog()
     pkgi_dialog_lock();
 
     DialogType local_type = dialog_type;
-    std::string local_title = dialog_title;
-    std::string local_text = dialog_text;
-    const auto local_name = dialog_name;
-    int local_allow_close = dialog_allow_close;
-    const auto responses = dialog_responses;
-    std::function<void()> callback;
-
+    auto local_text = dialog_text;
     pkgi_dialog_unlock();
 
-    ImGui::SetNextWindowPos(
-            ImVec2{VITA_WIDTH / 2, VITA_HEIGHT / 2}, 0, ImVec2{.5f, .5f});
-    ImGui::SetNextWindowSize(ImVec2{PKGI_DIALOG_WIDTH, -1});
-    ImGui::Begin(
-            std::to_string(local_name).c_str(),
-            nullptr,
-            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-                    ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
-                    ImGuiWindowFlags_NoScrollWithMouse |
-                    ImGuiWindowFlags_NoCollapse |
-                    ImGuiWindowFlags_NoSavedSettings |
-                    ImGuiWindowFlags_NoInputs);
-    ImGui::PushTextWrapPos(0.f);
-    if (local_type == DialogError)
-        ImGui::TextColored(
-                ImVec4{1.f, .2f, .2f, 1.f}, "%s", local_text.c_str());
-    else
-        ImGui::TextUnformatted(local_text.c_str());
-    ImGui::PopTextWrapPos();
-    if (local_type == DialogQuestion)
+    // cal bottom width
+    std::string bottom_text;
+    if (local_type == DialogYesNo)
     {
-        ImGui::Separator();
-        for (auto const response : responses)
-        {
-            if (ImGui::Button(
-                        response.text.c_str(),
-                        ImVec2{ImGui::GetWindowContentRegionWidth(),
-                               ImGui::GetTextLineHeightWithSpacing()}))
-            {
-                pkgi_dialog_lock();
-                dialog_type = DialogNone;
-                dialog_responses = {};
-                pkgi_dialog_unlock();
-                callback = response.callback;
-            }
-        }
+        bottom_text = fmt::format("{} ok {} cancel",
+            pkgi_get_ok_str(), pkgi_get_cancel_str());
     }
-    else if (local_allow_close)
+    else if (local_type != DialogInfo)
     {
-        ImGui::Separator();
-        if (ImGui::Button(
-                    "OK",
-                    ImVec2{ImGui::GetWindowContentRegionWidth(),
-                           ImGui::GetTextLineHeightWithSpacing()}))
-        {
-            pkgi_dialog_lock();
-            dialog_type = DialogNone;
-            pkgi_dialog_unlock();
-        }
-        ImGui::SetItemDefaultFocus();
+        bottom_text = fmt::format("{} close", pkgi_get_ok_str());
     }
-    ImGui::End();
+    int bottom_width = pkgi_text_width(bottom_text.c_str());
 
-    if (callback)
-        callback();
+    // dialog position
+    int local_width = std::max(dialog_width, bottom_width) + SHELL_MARGIN_X * 2;
+    int local_height = local_text.size() * FONT_Y_SPACE + SHELL_MARGIN_Y * 2;
+    if (local_type != DialogInfo) local_height += FONT_Y_SPACE * 2;
+
+    float dialog_left = ALIGN_CENTER(VITA_WIDTH, local_width);
+    float dialog_top = ALIGN_CENTER(VITA_HEIGHT, local_height);
+    // Dialog background
+    pkgi_draw_rect(dialog_left, dialog_top, local_width, 
+        local_height, PKGI_COLOR_DIALOG_BACKGROUND);
+
+    dialog_top += SHELL_MARGIN_Y;
+    for (size_t i = 0; i < local_text.size(); i++)
+    {
+        pkgi_draw_text(dialog_left + SHELL_MARGIN_X, dialog_top, 
+                PKGI_COLOR_TEXT_DIALOG, local_text[i].c_str());
+        dialog_top += FONT_Y_SPACE;
+    }
+    if (local_type != DialogInfo)
+    {
+        pkgi_draw_text(ALIGN_CENTER(VITA_WIDTH, bottom_width), 
+            dialog_top + FONT_Y_SPACE, PKGI_COLOR_TEXT_DIALOG, bottom_text.c_str());
+    }
 }
