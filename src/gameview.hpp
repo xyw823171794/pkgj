@@ -27,6 +27,7 @@ public:
 
     void render();
     void refresh();
+    void input(pkgi_input& input);
 
     bool is_closed() const
     {
@@ -57,7 +58,7 @@ private:
     ImageFetcher _image_fetcher;
 
     std::string get_min_system_version();
-    void printDiagnostic();
+
     void start_download_package();
     void cancel_download_package();
     void start_download_patch(const PatchInfo& patch_info);

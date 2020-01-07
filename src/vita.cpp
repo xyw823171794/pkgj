@@ -243,6 +243,16 @@ int pkgi_cancel_button(void)
     return g_cancel_button;
 }
 
+const char* pkgi_get_ok_str(void)
+{
+    return pkgi_ok_button() == PKGI_BUTTON_X ? PKGI_UTF8_X : PKGI_UTF8_O;
+}
+
+const char* pkgi_get_cancel_str(void)
+{
+    return pkgi_cancel_button() == PKGI_BUTTON_O ? PKGI_UTF8_O : PKGI_UTF8_X;
+}
+
 static int pkgi_power_thread(SceSize args, void* argp)
 {
     PKGI_UNUSED(args);
@@ -550,12 +560,22 @@ void pkgi_start(void)
     }
 
     vita2d_init_advanced(4 * 1024 * 1024);
-    vita2d_system_pgf_config pgf_confs[3] = {
-        {SCE_FONT_LANGUAGE_KOREAN,  pkgi_is_korean_char},
-        {SCE_FONT_LANGUAGE_LATIN,   pkgi_is_latin_char},
-        {SCE_FONT_LANGUAGE_DEFAULT, NULL},
-    };
-    g_font = vita2d_load_system_pgf(3, pgf_confs);
+
+    if (pkgi_is_unsafe_mode()) {
+        auto const path = fmt::format("{}/font.pgf", pkgi_get_config_folder());
+        if (pkgi_file_exists(path))
+            g_font = vita2d_load_custom_pgf(path.c_str());
+    }
+
+    if (!g_font)
+    {
+        vita2d_system_pgf_config pgf_confs[3] = {
+            {SCE_FONT_LANGUAGE_KOREAN,  pkgi_is_korean_char},
+            {SCE_FONT_LANGUAGE_LATIN,   pkgi_is_latin_char},
+            {SCE_FONT_LANGUAGE_DEFAULT, NULL},
+        };
+        g_font = vita2d_load_system_pgf(3, pgf_confs);
+    }
 
     g_time = sceKernelGetProcessTimeWide();
 
@@ -836,15 +856,14 @@ void pkgi_clip_remove(void)
     vita2d_disable_clipping();
 }
 
-void pkgi_draw_rect(int x, int y, int w, int h, uint32_t color)
+void pkgi_draw_rect(float x, float y, float w, float h, uint32_t color)
 {
-    vita2d_draw_rectangle(
-            (float)x, (float)y, (float)w, (float)h, VITA_COLOR(color));
+    vita2d_draw_rectangle(x, y, w, h, VITA_COLOR(color));
 }
 
-void pkgi_draw_text(int x, int y, uint32_t color, const char* text)
+int pkgi_draw_text(int x, int y, uint32_t color, const char* text)
 {
-    vita2d_pgf_draw_text(g_font, x, y + 20, VITA_COLOR(color), 1.f, text);
+    return vita2d_pgf_draw_text(g_font, x, y + 20, VITA_COLOR(color), 1.f, text);
 }
 
 int pkgi_text_width(const char* text)

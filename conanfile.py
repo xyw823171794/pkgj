@@ -8,7 +8,6 @@ class PkgjConan(ConanFile):
     def requirements(self):
         if self.settings.os == "PSVita":
             self.requires("vitasqlite/0.0.1@blastrock/pkgj")
-            self.requires("imgui/1.62@blastrock/pkgj")
             self.requires("taihen/0.11@blastrock/pkgj")
         else:
             self.requires("sqlite3/3.21.0@bincrafters/stable")
@@ -27,5 +26,3 @@ class PkgjConan(ConanFile):
         self.options["bzip2"].fPIC = False
         self.options["libzip"].fPIC = False
         self.options["libzip"].shared = False
-        self.options["imgui"].fPIC = False
-        self.options["imgui"].shared = False

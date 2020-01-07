@@ -39,8 +39,6 @@ endfunction()
 
 add_assets(assets
   assets/background.png
-  assets/imgui_v_cg.gxp
-  assets/imgui_f_cg.gxp
 )
 
 add_executable(pkgj
@@ -59,7 +57,6 @@ add_executable(pkgj
   src/patchinfo.cpp
   src/patchinfofetcher.cpp
   src/imagefetcher.cpp
-  src/imgui.cpp
   src/install.cpp
   src/menu.cpp
   src/pkgi.cpp
@@ -80,7 +77,6 @@ target_link_libraries(pkgj
   CONAN_PKG::vitasqlite
   CONAN_PKG::cereal
   CONAN_PKG::libzip
-  CONAN_PKG::imgui
   CONAN_PKG::taihen
   png
   jpeg

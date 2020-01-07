@@ -73,9 +73,11 @@ void update_thread()
     try
     {
         if (!pkgi_is_module_present("NoNpDrm"))
-            pkgi_dialog_error("NoNpDrm not found. Games cannot be installed or played.");
+            pkgi_dialog_error(
+                    "NoNpDrm not found. Games cannot be installed or played.");
 
-        while (pkgi_dialog_is_open()) {
+        while (pkgi_dialog_is_open())
+        {
             pkgi_sleep(20);
         }
 
@@ -102,12 +104,10 @@ void update_thread()
                             "download it?",
                             last_version)
                             .c_str(),
-                    {{"Yes",
-                      [] {
-                          pkgi_start_thread(
-                                  "pkgj_update_download", &start_download);
-                      }},
-                     {"No", [] {}}});
+                    [] {
+                        pkgi_start_thread(
+                                "pkgj_update_download", &start_download);
+                    });
         }
     }
     catch (const std::exception& e)

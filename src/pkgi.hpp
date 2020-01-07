@@ -26,6 +26,9 @@
 #define PKGI_BUTTON_S 0x00008000 // square
 
 #define PKGI_UNUSED(x) (void)(x)
+#define ALIGN_CENTER(a, b) (((a) - (b)) / 2)
+// Main
+const float FONT_Y_SPACE = 23.0f;
 
 typedef struct pkgi_input
 {
@@ -54,6 +57,8 @@ int pkgi_is_unsafe_mode(void);
 
 int pkgi_ok_button(void);
 int pkgi_cancel_button(void);
+const char* pkgi_get_ok_str(void);
+const char* pkgi_get_cancel_str(void);
 
 void pkgi_start(void);
 int pkgi_update(pkgi_input* input);
@@ -111,8 +116,8 @@ void pkgi_draw_texture(pkgi_texture texture, int x, int y);
 
 void pkgi_clip_set(int x, int y, int w, int h);
 void pkgi_clip_remove(void);
-void pkgi_draw_rect(int x, int y, int w, int h, uint32_t color);
-void pkgi_draw_text(int x, int y, uint32_t color, const char* text);
+void pkgi_draw_rect(float x, float y, float w, float h, uint32_t color);
+int pkgi_draw_text(int x, int y, uint32_t color, const char* text);
 int pkgi_text_width(const char* text);
 int pkgi_text_height(const char* text);
 

@@ -12,14 +12,12 @@ extern "C"
 #include "download.hpp"
 #include "downloader.hpp"
 #include "gameview.hpp"
-#include "imgui.hpp"
 #include "install.hpp"
 #include "menu.hpp"
 #include "update.hpp"
 #include "utils.hpp"
 #include "vitahttp.hpp"
 #include "zrif.hpp"
-#include <imgui_internal.h>
 
 #include <vita2d.h>
 
@@ -76,16 +74,6 @@ bool need_refresh = true;
 std::string content_to_refresh;
 
 void pkgi_reload();
-
-const char* pkgi_get_ok_str(void)
-{
-    return pkgi_ok_button() == PKGI_BUTTON_X ? PKGI_UTF8_X : PKGI_UTF8_O;
-}
-
-const char* pkgi_get_cancel_str(void)
-{
-    return pkgi_cancel_button() == PKGI_BUTTON_O ? PKGI_UTF8_O : PKGI_UTF8_X;
-}
 
 Type mode_to_type(Mode mode)
 {
@@ -705,10 +693,8 @@ void pkgi_do_refresh(void)
 
 void pkgi_do_head(void)
 {
-    const char* version = PKGI_VERSION;
-
     char title[256];
-    pkgi_snprintf(title, sizeof(title), "PKGj v%s", version);
+    pkgi_snprintf(title, sizeof(title), "PKGj v%s", PKGI_VERSION);
     pkgi_draw_text(0, 0, PKGI_COLOR_TEXT_HEAD, title);
 
     pkgi_draw_rect(
@@ -1105,65 +1091,23 @@ int main()
         if (!config.no_version_check)
             start_update_thread();
 
-        const auto imgui_context = ImGui::CreateContext();
-        // Force enabling of navigation
-        imgui_context->NavDisableHighlight = false;
-        ImGuiIO& io = ImGui::GetIO();
-
-        // Build and load the texture atlas into a texture
-        uint32_t* pixels = NULL;
-        int width, height;
-        if (!io.Fonts->AddFontFromFileTTF(
-                    "sa0:/data/font/pvf/ltn0.pvf",
-                    20.0f,
-                    0,
-                    io.Fonts->GetGlyphRangesDefault()))
-            throw std::runtime_error("failed to load ltn0.pvf");
-        if (!io.Fonts->AddFontFromFileTTF(
-                    "sa0:/data/font/pvf/jpn0.pvf",
-                    20.0f,
-                    0,
-                    io.Fonts->GetGlyphRangesJapanese()))
-            throw std::runtime_error("failed to load jpn0.pvf");
-        io.Fonts->GetTexDataAsRGBA32((uint8_t**)&pixels, &width, &height);
-        vita2d_texture* font_texture =
-                vita2d_create_empty_texture(width, height);
-        const auto stride = vita2d_texture_get_stride(font_texture) / 4;
-        auto texture_data = (uint32_t*)vita2d_texture_get_datap(font_texture);
-
-        for (auto y = 0; y < height; ++y)
-            for (auto x = 0; x < width; ++x)
-                texture_data[y * stride + x] = pixels[y * width + x];
-
-        io.Fonts->TexID = font_texture;
-
-        init_imgui();
-
         pkgi_input input;
         while (pkgi_update(&input))
         {
-            ImGuiIO& io = ImGui::GetIO();
-            io.DeltaTime = 1.0f / 60.0f;
-            io.DisplaySize.x = VITA_WIDTH;
-            io.DisplaySize.y = VITA_HEIGHT;
-
-            if (gameview || pkgi_dialog_is_open())
+            if (pkgi_dialog_is_open())
             {
-                if (input.pressed & PKGI_BUTTON_UP)
-                    io.NavInputs[ImGuiNavInput_DpadUp] = 1.0f;
-                if (input.pressed & PKGI_BUTTON_DOWN)
-                    io.NavInputs[ImGuiNavInput_DpadDown] = 1.0f;
-                if (input.pressed & PKGI_BUTTON_LEFT)
-                    io.NavInputs[ImGuiNavInput_DpadLeft] = 1.0f;
-                if (input.pressed & PKGI_BUTTON_RIGHT)
-                    io.NavInputs[ImGuiNavInput_DpadRight] = 1.0f;
-                if (input.pressed & pkgi_ok_button())
-                    io.NavInputs[ImGuiNavInput_Activate] = 1.0f;
+                if (input.pressed & pkgi_ok_button()) {
+                    pkgi_dialog_close();
+                }
                 if (input.pressed & pkgi_cancel_button()) {
-                    if (pkgi_dialog_is_open()) pkgi_dialog_close();
-                    else if (gameview) gameview->close();
                 }
 
+                input.active = 0;
+                input.pressed = 0;
+            }
+            else if (gameview)
+            {
+                gameview->input(input);
                 input.active = 0;
                 input.pressed = 0;
             }
@@ -1192,8 +1136,6 @@ int main()
                     gameview->refresh();
                 need_refresh = false;
             }
-
-            ImGui::NewFrame();
 
             pkgi_draw_texture(background, 0, 0);
 
@@ -1315,12 +1257,6 @@ int main()
                     }
                 }
             }
-
-            ImGui::EndFrame();
-            ImGui::Render();
-
-            pkgi_imgui_render(ImGui::GetDrawData());
-
             pkgi_swap();
         }
     }
