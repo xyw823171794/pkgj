@@ -9,6 +9,12 @@
 		<startup-image>startup.png</startup-image>
 	</gate>
 
+	<frame id="frame1">
+		<liveitem>
+			<image align="left" valign="top">qrcode.png</image>
+		</liveitem>
+	</frame>
+
 	<frame id="frame2">
 		<liveitem>
 			<text valign="bottom" align="left" text-align="left" text-valign="bottom" line-space="3" ellipsis="on">

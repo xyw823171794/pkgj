@@ -125,6 +125,7 @@ vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} eboot.bin
   FILE assets/sce_sys/icon0.png sce_sys/icon0.png
        assets/sce_sys/livearea/contents/bg.png sce_sys/livearea/contents/bg.png
        assets/sce_sys/livearea/contents/startup.png sce_sys/livearea/contents/startup.png
+       assets/sce_sys/livearea/contents/qrcode.png sce_sys/livearea/contents/qrcode.png
        ${CMAKE_CURRENT_BINARY_DIR}/assets/sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
 )
 
