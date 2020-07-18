@@ -79,8 +79,11 @@ target_link_libraries(pkgj
   CONAN_PKG::boost_scope_exit
   CONAN_PKG::vitasqlite
   CONAN_PKG::cereal
-  CONAN_PKG::libzip
-  CONAN_PKG::imgui
+  zip
+  bz2
+  mathneon
+  vitaGL
+  imgui
   png
   jpeg
   z

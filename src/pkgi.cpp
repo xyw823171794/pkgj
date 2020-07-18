@@ -1082,12 +1082,12 @@ int main()
         auto const path = fmt::format("{}/font.ttf", pkgi_get_config_folder());
         if (pkgi_file_exists(path)) {
             if (!io.Fonts->AddFontFromFileTTF(path.c_str(), 20.0f, nullptr,
-                    io.Fonts->GetGlyphRangesChineseSimplifiedCommon()))
+                    io.Fonts->GetGlyphRangesChinese()))
             throw std::runtime_error(fmt::format("无法加载 {}", path));
         }
         else if (!io.Fonts->AddFontFromFileTTF(
                     "sa0:/data/font/pvf/cn0.pvf", 20.0f, nullptr,
-                    io.Fonts->GetGlyphRangesChineseSimplifiedCommon()))
+                    io.Fonts->GetGlyphRangesChinese()))
             throw std::runtime_error("无法加载 cn0.pvf");
         io.Fonts->GetTexDataAsRGBA32((uint8_t**)&pixels, &width, &height);
         vita2d_texture* font_texture =
