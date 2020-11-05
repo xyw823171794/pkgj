@@ -122,7 +122,7 @@ void VitaHttp::start(const std::string& url, uint64_t offset, bool head)
     if ((err = sceHttpSendRequest(req, NULL, 0)) < 0)
     {
         std::string err_msg;
-        switch (err)
+        switch (static_cast<uint32_t>(err))
         {
             case 0x80431063:
                 err_msg = "网络错误";
@@ -143,7 +143,7 @@ void VitaHttp::start(const std::string& url, uint64_t offset, bool head)
                 err_msg = "SSL错误";
                 break;
             default:
-                err_msg = "";
+                err_msg = "未知错误";
         }
 
         throw formatEx<HttpError>("发送请求失败: {:#08x}\n{}",
